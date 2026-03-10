@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>倉庫櫃位管理系統 - 雲端連線版</title>
+    <title>倉庫櫃位管理系統 - 修正配置版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
@@ -11,27 +11,20 @@
         #map-container { flex: 1.5; border: 2px solid #333; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         #info-panel { flex: 1; border: 1px solid #007bff; padding: 20px; background: #f9f9f9; border-radius: 8px; display: flex; flex-direction: column; }
         
-        /* SVG 櫃位樣式 */
+        /* 櫃位與門的樣式 */
         .shelf { fill: #e0e0e0; stroke: #555; stroke-width: 1.5; cursor: pointer; transition: 0.3s; }
         .shelf:hover { fill: #ffe082; }
         .active-shelf { fill: #a5d6a7 !important; stroke: #2e7d32; stroke-width: 2; }
         .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; fill: #333; }
         
-        /* 門的樣式 */
+        /* 修正後的門樣式 (置於右側牆面) */
         .door-arc { fill: none; stroke: #d32f2f; stroke-width: 2; }
         .door-text { fill: #d32f2f; font-size: 16px; font-weight: bold; pointer-events: none; }
 
-        /* 層級按鈕樣式 */
-        #level-buttons button { margin: 5px; padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-        #level-buttons button:hover { background-color: #0056b3; }
-        #level-buttons button.active { background-color: #004494; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-
-        /* 零件卡片樣式 */
-        .item-card { border: 1px solid #ddd; border-radius: 5px; background: white; padding: 15px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 15px; }
-        .item-info { flex: 1; }
-        .item-card strong { color: #004494; font-size: 1.1em; display: block; margin-bottom: 5px; }
-        .item-card p { margin: 3px 0; color: #555; font-size: 0.9em; }
-        .item-image { max-width: 100px; max-height: 100px; border: 1px solid #eee; border-radius: 4px; object-fit: cover; }
+        #level-buttons button { margin: 5px; padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #level-buttons button.active { background-color: #004494; }
+        .item-card { border: 1px solid #ddd; border-radius: 5px; background: white; padding: 15px; margin-bottom: 10px; display: flex; gap: 15px; }
+        .item-image { max-width: 100px; max-height: 100px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -42,8 +35,8 @@
     <div id="map-container">
         <h3>倉庫平面圖 (點擊櫃位)</h3>
         <svg id="warehouse-map" viewBox="0 0 450 650" width="100%">
-            <path d="M 370 20 Q 430 80 430 140 L 430 20 Z" class="door-arc" />
-            <text x="390" y="60" class="door-text">門</text>
+            <path d="M 430 100 Q 370 100 370 160 L 430 160 Z" class="door-arc" />
+            <text x="390" y="140" class="door-text">門</text>
 
             <rect id="F1" class="shelf" x="250" y="20" width="120" height="70" />
             <text x="300" y="60" class="shelf-text">F1</text>
@@ -64,24 +57,22 @@
             <text x="140" y="300" class="shelf-text">F7</text>
             <rect id="F8" class="shelf" x="110" y="330" width="80" height="40" />
             <text x="140" y="355" class="shelf-text">F8</text>
-            <rect class="shelf" x="110" y="400" width="130" height="150" />
 
             <rect id="F9" class="shelf" x="230" y="220" width="50" height="110" />
             <text x="245" y="280" class="shelf-text">F9</text>
             <rect id="F10" class="shelf" x="280" y="220" width="50" height="110" />
             <text x="295" y="280" class="shelf-text">F10</text>
             
+            <rect class="shelf" x="110" y="400" width="130" height="150" />
             <rect class="shelf" x="240" y="380" width="40" height="30" />
             <rect class="shelf" x="280" y="380" width="40" height="30" />
             <rect class="shelf" x="240" y="410" width="40" height="30" />
             <rect class="shelf" x="280" y="410" width="40" height="30" />
-            <rect class="shelf" x="240" y="440" width="40" height="30" />
-            <rect class="shelf" x="280" y="440" width="40" height="30" />
         </svg>
     </div>
 
     <div id="info-panel">
-        <h2 id="selected-title">請點擊平面圖上的櫃位...</h2>
+        <h2 id="selected-title">請點擊櫃位...</h2>
         <div id="level-container" style="display:none;">
             <h3>選擇層級：</h3>
             <div id="level-buttons"></div>
@@ -92,30 +83,26 @@
 </div>
 
 <script>
-    // --- 雲端設定區 ---
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSto46FBwnjrl-C05u7L8klqGX0NaF33RrBVoXQutZv0EeC8uKvlcqh2UrhVdVJpQMnKtkTQnS6x591/pub?gid=0&single=true&output=csv"; // <--- 這裡記得換掉！
-    let inventoryData = []; // 資料會從 Google Sheets 抓過來放這裡
+    // --- 貼上你的 CSV 網址 ---
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSto46FBwnjrl-C05u7L8klqGX0NaF33RrBVoXQutZv0EeC8uKvlcqh2UrhVdVJpQMnKtkTQnS6x591/pub?gid=0&single=true&output=csv"; 
+    let inventoryData = [];
 
-    // 初始化：網頁一打開就去抓 Google Sheets 資料
     window.onload = function() {
         Papa.parse(sheetUrl, {
             download: true,
             header: true,
             complete: function(results) {
                 inventoryData = results.data;
-                console.log("資料串接成功！目前的庫存清單：", inventoryData);
             }
         });
     };
 
-    // 原有的變數初始化
     const shelves = document.querySelectorAll('.shelf');
     const titleEl = document.getElementById('selected-title');
     const levelContainerEl = document.getElementById('level-container');
     const levelBtnsEl = document.getElementById('level-buttons');
     const detailsEl = document.getElementById('item-details');
     
-    // 櫃位點擊事件
     shelves.forEach(shelf => {
         shelf.addEventListener('click', function() {
             const shelfId = this.id;
@@ -130,19 +117,15 @@
         });
     });
 
-    // 顯示層級按鈕
     function showLevels(shelfId) {
         levelContainerEl.style.display = "block";
         levelBtnsEl.innerHTML = ""; 
-
-        // 自動產生 1 到 4 層（你可以根據需求修改層數）
         for(let i = 1; i <= 4; i++) {
             let levelId = `${shelfId}-${i}`;
             let btn = document.createElement('button');
             btn.innerText = `第 ${i} 層 (${levelId})`;
             btn.onclick = function() {
-                const allBtns = levelBtnsEl.querySelectorAll('button');
-                allBtns.forEach(b => b.classList.remove('active'));
+                levelBtnsEl.querySelectorAll('button').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 showItemsByLevel(levelId);
             };
@@ -150,24 +133,21 @@
         }
     }
 
-    // 根據 Google Sheets 資料顯示零件
     function showItemsByLevel(levelId) {
-        // 從資料中搜尋符合的層級 (Level)
-        // 注意：這裡 ["層級編號 (Level)"] 要對應你 Sheets 的標題
+        // 抓取 Google Sheets 中標題為 "層級編號 (Level)" 的資料
         const matchedItems = inventoryData.filter(item => item["層級編號 (Level)"] === levelId);
         
         if(matchedItems.length === 0) {
-            detailsEl.innerHTML = `<div>目前 ${levelId} 沒有存放任何零件。</div>`;
+            detailsEl.innerHTML = `<div>位置 ${levelId} 目前為空。</div>`;
             return;
         }
 
         detailsEl.innerHTML = matchedItems.map(item => `
             <div class="item-card">
-                ${item["圖片連結 (ImageURL)"] ? `<img src="${item["圖片連結 (ImageURL)"]}" class="item-image">` : `<div class="item-image" style="background:#eee;display:flex;align-items:center;justify-content:center;color:#999;">無圖片</div>`}
+                ${item["圖片連結 (ImageURL)"] ? `<img src="${item["圖片連結 (ImageURL)"]}" class="item-image">` : `<div style="width:100px;height:100px;background:#eee;display:flex;align-items:center;justify-content:center;color:#999;">無圖</div>`}
                 <div class="item-info">
                     <strong>${item["零件名稱 (Name)"]}</strong>
-                    <p>用途說明：${item["使用用途 (Usage)"]}</p>
-                    <p style="color:#999;font-size:12px;">櫃位位置：${item["層級編號 (Level)"]}</p>
+                    <p>用途：${item["使用用途 (Usage)"]}</p>
                 </div>
             </div>
         `).join('');
