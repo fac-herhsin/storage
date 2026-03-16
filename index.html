@@ -3,61 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>倉庫櫃位管理系統 - 實景圖導覽版</title>
+    <title>倉庫儲位管理系統 - 完整功能版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        :root { --primary-color: #007bff; --highlight-color: #d32f2f; }
+        :root { --primary-color: #007bff; --shelf-color: #e9ecef; --hover-color: #ffe082; }
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
         
         .main-layout { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1000px; margin: 0 auto; }
         #map-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        /* SVG 樣式 */
-        .shelf { fill: #e9ecef; stroke: #adb5bd; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
-        .shelf:hover { fill: #ffe082; }
-        .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; }
+        /* SVG 櫃位樣式 */
+        .shelf { fill: var(--shelf-color); stroke: #adb5bd; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
+        .shelf:hover { fill: var(--hover-color); transform: translateY(-2px); }
+        .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; fill: #495057; }
+        .door-arc { fill: none; stroke: #d32f2f; stroke-width: 2; stroke-dasharray: 4; }
+        .door-frame { fill: none; stroke: #d32f2f; stroke-width: 3; }
 
         /* 彈窗樣式 */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); }
         .modal-content { 
-            background: white; margin: 1% auto; width: 95%; max-width: 900px; height: 95vh;
-            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; 
+            background: white; margin: 1% auto; width: 95%; max-width: 850px; height: 95vh;
+            border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; 
         }
         .modal-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 
-        /* 實景圖容器 */
+        /* 實景導覽 */
         .photo-guide-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto 20px; border: 3px solid #333; border-radius: 8px; overflow: hidden; }
         .shelf-photo { width: 100%; display: block; }
-        
-        /* 視覺導引紅框 */
-        .guide-box { 
-            position: absolute; border: 4px solid red; background: rgba(255, 0, 0, 0.2); 
-            display: none; pointer-events: none; transition: all 0.3s; box-shadow: 0 0 15px rgba(255,0,0,0.5);
-        }
+        .guide-box { position: absolute; border: 4px solid red; background: rgba(255, 0, 0, 0.2); display: none; pointer-events: none; box-shadow: 0 0 15px rgba(255,0,0,0.5); }
 
-        /* 按鈕組 */
-        .level-btn-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; position: sticky; top: 0; background: white; padding: 10px; z-index: 10; }
-        .level-btn { padding: 12px 20px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: bold; background: #f8f9fa; }
-        .level-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-
-        /* 零件卡片 */
-        .item-card { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; gap: 15px; align-items: center; }
-        .item-image { width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
-        .close-btn { font-size: 30px; cursor: pointer; }
+        /* 按鈕與卡片 */
+        .level-btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; background: white; padding: 10px; position: sticky; top: 0; z-index: 10; }
+        .level-btn { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; background: #f8f9fa; }
+        .level-btn.active { background: var(--primary-color); color: white; }
+        .item-card { border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; gap: 15px; background: #fff; }
+        .item-image { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; }
+        .close-btn { font-size: 30px; cursor: pointer; color: #999; }
     </style>
 </head>
 <body>
 
 <div class="main-layout">
     <div id="map-container">
-        <h2 style="text-align:center;">倉庫儲位系統 (實景導覽版)</h2>
+        <h2 style="text-align:center;">倉庫儲位管理系統</h2>
         <svg id="warehouse-map" viewBox="0 0 450 650" width="100%">
             <rect x="10" y="10" width="430" height="630" fill="none" stroke="#333" stroke-width="2" />
-            <rect id="F6" class="shelf" x="130" y="260" width="100" height="30" /><text x="170" y="280" class="shelf-text">F6</text>
+            
+            <line x1="440" y1="110" x2="440" y2="180" class="door-frame" />
+            <path d="M 440 110 Q 380 110 380 110" stroke="#d32f2f" stroke-width="2" fill="none" />
+            <path d="M 380 110 A 60 60 0 0 1 440 170" class="door-arc" />
+            <text x="395" y="150" fill="#d32f2f" font-weight="bold">門</text>
+
             <rect id="F1" class="shelf" x="310" y="10" width="130" height="80" /><text x="360" y="55" class="shelf-text">F1</text>
             <rect id="F2" class="shelf" x="130" y="10" width="160" height="100" /><text x="200" y="65" class="shelf-text">F2</text>
-            </svg>
+            <rect id="F3" class="shelf" x="10" y="10" width="100" height="200" /><text x="50" y="115" class="shelf-text">F3</text>
+            
+            <rect id="F4" class="shelf" x="130" y="160" width="100" height="40" /><text x="170" y="185" class="shelf-text">F4</text>
+            <rect id="F5" class="shelf" x="130" y="200" width="100" height="40" /><text x="170" y="225" class="shelf-text">F5</text>
+            
+            <rect id="F6" class="shelf" x="130" y="260" width="100" height="30" /><text x="170" y="280" class="shelf-text">F6</text>
+            <rect id="F7" class="shelf" x="130" y="290" width="100" height="30" /><text x="170" y="310" class="shelf-text">F7</text>
+            
+            <rect id="F8" class="shelf" x="130" y="350" width="100" height="40" /><text x="170" y="375" class="shelf-text">F8</text>
+            
+            <rect id="F9" class="shelf" x="260" y="240" width="60" height="130" /><text x="280" y="310" class="shelf-text">F9</text>
+            <rect id="F10" class="shelf" x="320" y="240" width="60" height="130" /><text x="340" y="310" class="shelf-text">F10</text>
+        </svg>
     </div>
 </div>
 
@@ -68,8 +80,8 @@
             <span class="close-btn" onclick="closeModal()">&times;</span>
         </div>
         <div class="modal-body">
-            <div id="f6-photo-area" class="photo-guide-container" style="display:none;">
-                <img src="https://raw.githubusercontent.com/YourGitHubID/YourRepo/main/f6_photo.jpg" id="shelf-image" class="shelf-photo">
+            <div id="shelf-photo-area" class="photo-guide-container" style="display:none;">
+                <img src="" id="shelf-image" class="shelf-photo">
                 <div id="guide-box" class="guide-box"></div>
             </div>
 
@@ -80,17 +92,20 @@
 </div>
 
 <script>
-    // 請將下方的圖片路徑替換成你上傳到 GitHub 或雲端的實際網址
-    const F6_IMAGE_URL = "https://example.com/your-f6-image.jpg"; 
     const sheetUrl = "你的Google試算表CSV網址";
     let inventoryData = [];
 
-    // F6 各層級在圖片中的位置比例 (Top, Left, Width, Height)
-    const F6_COORDINATES = {
-        "F6-1": { top: "15%", left: "5%", width: "90%", height: "20%" },
-        "F6-2": { top: "38%", left: "5%", width: "90%", height: "20%" },
-        "F6-3": { top: "60%", left: "5%", width: "90%", height: "18%" },
-        "F6-4": { top: "78%", left: "5%", width: "90%", height: "18%" }
+    // F6 櫃位照片與各層級座標
+    const SHELF_CONFIG = {
+        "F6": {
+            img: "https://你的圖片網址/f6_labeled.jpg", 
+            coords: {
+                "F6-1": { top: "15%", left: "5%", width: "90%", height: "20%" },
+                "F6-2": { top: "38%", left: "5%", width: "90%", height: "20%" },
+                "F6-3": { top: "60%", left: "5%", width: "90%", height: "18%" },
+                "F6-4": { top: "78%", left: "5%", width: "90%", height: "18%" }
+            }
+        }
     };
 
     window.onload = function() {
@@ -101,21 +116,22 @@
 
     function openModal(shelfId) {
         document.getElementById("modal-title").innerText = "櫃位詳情：" + shelfId;
-        const photoArea = document.getElementById("f6-photo-area");
+        const photoArea = document.getElementById("shelf-photo-area");
         const guideBox = document.getElementById("guide-box");
         const btnContainer = document.getElementById("modal-level-buttons");
         
-        // 如果是 F6 則顯示實景圖
-        if (shelfId === "F6") {
+        // 檢查是否有實景圖設定
+        if (SHELF_CONFIG[shelfId]) {
             photoArea.style.display = "block";
-            document.getElementById("shelf-image").src = F6_IMAGE_URL; 
+            document.getElementById("shelf-image").src = SHELF_CONFIG[shelfId].img;
         } else {
             photoArea.style.display = "none";
         }
 
-        guideBox.style.display = "none"; // 初始隱藏紅框
+        guideBox.style.display = "none";
         btnContainer.innerHTML = "";
         
+        // 預設生成 4 層 (可根據需求調整)
         for(let i = 1; i <= 4; i++) {
             let levelId = `${shelfId}-${i}`;
             let btn = document.createElement('button');
@@ -125,14 +141,10 @@
                 document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                // 處理紅框導引
-                if (shelfId === "F6" && F6_COORDINATES[levelId]) {
-                    const pos = F6_COORDINATES[levelId];
-                    guideBox.style.top = pos.top;
-                    guideBox.style.left = pos.left;
-                    guideBox.style.width = pos.width;
-                    guideBox.style.height = pos.height;
-                    guideBox.style.display = "block";
+                // 顯示紅框引導
+                if (SHELF_CONFIG[shelfId] && SHELF_CONFIG[shelfId].coords[levelId]) {
+                    const c = SHELF_CONFIG[shelfId].coords[levelId];
+                    Object.assign(guideBox.style, { top: c.top, left: c.left, width: c.width, height: c.height, display: "block" });
                 }
                 renderItems(levelId);
             };
@@ -146,16 +158,17 @@
         const container = document.getElementById("modal-item-display");
         container.innerHTML = matched.length ? matched.map(item => `
             <div class="item-card">
-                <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/100?text=No+Img'">
+                <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/120?text=No+Photo'">
                 <div>
-                    <h3 style="margin:0;">${item["零件名稱 (Name)"]}</h3>
-                    <p style="margin:5px 0;">用途：${item["使用用途 (Usage)"] || '無'}</p>
+                    <h3 style="margin:0 0 10px 0; color:#007bff;">${item["零件名稱 (Name)"]}</h3>
+                    <p><strong>🛠 用途：</strong> ${item["使用用途 (Usage)"] || '無'}</p>
                 </div>
             </div>
-        `).join('') : "暫無資料";
+        `).join('') : `<div style="text-align:center; padding:20px; color:#999;">此層級暫無資料</div>`;
     }
 
     function closeModal() { document.getElementById("shelfModal").style.display = "none"; }
+    window.onclick = e => { if(e.target.id === "shelfModal") closeModal(); }
 </script>
 </body>
 </html>
