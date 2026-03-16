@@ -3,60 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>倉庫櫃位管理系統 - 進階搜尋與彈窗版</title>
+    <title>倉庫櫃位管理系統 - 網頁式垂直瀏覽版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         :root { --primary-color: #007bff; --secondary-color: #6c757d; }
-        body { font-family: "Microsoft JhengHei", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        body { font-family: "Microsoft JhengHei", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; line-height: 1.6; }
         
-        /* 搜尋區塊 */
-        .search-container { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; gap: 10px; align-items: center; }
-        #global-search { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        
-        .main-layout { display: flex; gap: 20px; }
-        #map-container { flex: 2; border: 2px solid #333; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        #search-results-panel { flex: 1; border: 1px solid var(--primary-color); padding: 15px; background: #fff; border-radius: 8px; max-height: 600px; overflow-y: auto; }
+        /* 頁面標題 */
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
 
-        /* SVG 樣式 */
-        .shelf { fill: #e0e0e0; stroke: #555; stroke-width: 1.5; cursor: pointer; transition: 0.3s; }
-        .shelf:hover { fill: #ffe082; }
-        .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; fill: #333; }
+        /* 全域搜尋區 - 固定在上方或隨頁面滾動 */
+        .search-container { 
+            background: white; padding: 20px; border-radius: 8px; 
+            margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            display: flex; gap: 15px; align-items: center;
+            position: sticky; top: 10px; z-index: 100;
+        }
+        #global-search { flex: 1; padding: 12px; border: 2px solid var(--primary-color); border-radius: 6px; font-size: 18px; }
+        
+        /* 改為垂直佈局 */
+        .main-layout { display: flex; flex-direction: column; gap: 30px; width: 100%; max-width: 1000px; margin: 0 auto; }
+        
+        /* 地圖區塊 */
+        #map-container { background: white; padding: 20px; border-radius: 12px; border: 2px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        /* 搜尋結果區塊 - 隨內容撐高 */
+        #search-results-panel { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid var(--primary-color); min-height: 200px; }
+        #search-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
+
+        /* SVG 櫃位樣式 */
+        .shelf { fill: #e9ecef; stroke: #adb5bd; stroke-width: 1.5; cursor: pointer; transition: all 0.2s; }
+        .shelf:hover { fill: #ffe082; transform: translateY(-2px); }
+        .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; fill: #495057; }
         .door-arc { fill: none; stroke: #d32f2f; stroke-width: 2; stroke-dasharray: 4; }
         .door-frame { fill: none; stroke: #d32f2f; stroke-width: 3; }
 
-        /* 彈出視窗 (Modal) 樣式 */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); }
-        .modal-content { background-color: white; margin: 5% auto; padding: 25px; border-radius: 12px; width: 80%; max-width: 800px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 28px; cursor: pointer; color: #aaa; }
-        .close-btn:hover { color: black; }
+        /* 彈出視窗修正：增加內部滾動條 */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); overflow: hidden; }
+        .modal-content { 
+            background-color: white; margin: 2% auto; padding: 0; border-radius: 15px; 
+            width: 90%; max-width: 850px; height: 90vh; /* 固定高度 90% 視窗高度 */
+            display: flex; flex-direction: column; overflow: hidden; 
+        }
+        .modal-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; } /* 關鍵：只有內容區會滾動 */
+        
+        .close-btn { font-size: 32px; cursor: pointer; color: #666; }
+        .close-btn:hover { color: #000; }
 
-        /* 彈窗內的按鈕 */
-        .level-btn-group { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
-        .level-btn { padding: 12px 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: 0.2s; }
-        .level-btn:hover { background-color: #0056b3; }
-        .level-btn.active { background-color: #003d80; outline: 3px solid #ffe082; }
+        /* 層級按鈕 */
+        .level-btn-group { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; position: sticky; top: 0; background: white; padding: 10px 0; z-index: 10; }
+        .level-btn { padding: 10px 25px; background-color: #f8f9fa; color: #333; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .level-btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); box-shadow: 0 4px 8px rgba(0,123,255,0.3); }
 
-        /* 零件卡片樣式 */
-        .item-card { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-top: 15px; display: flex; gap: 20px; background: #fafafa; }
-        .item-image { width: 150px; height: 150px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: zoom-in; }
-        .item-image:hover { transform: scale(1.05); transition: 0.3s; }
-        .search-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .search-item:hover { background-color: #f0f7ff; }
-        .highlight { color: #d32f2f; font-weight: bold; }
+        /* 零件卡片 */
+        .item-card { border: 1px solid #eef2f7; border-radius: 10px; padding: 20px; margin-bottom: 15px; display: flex; gap: 20px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .item-image { width: 180px; height: 180px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; }
+        .search-item-card { border: 1px solid #eee; padding: 15px; border-radius: 8px; cursor: pointer; background: #fdfdfd; transition: 0.2s; }
+        .search-item-card:hover { border-color: var(--primary-color); background: #f0f7ff; }
+        .highlight-pos { color: #d32f2f; font-weight: bold; background: #fff5f5; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <h1>倉庫櫃位管理系統</h1>
 
-<div class="search-container">
-    <strong>快速找零件：</strong>
-    <input type="text" id="global-search" placeholder="請輸入零件名稱或關鍵字 (例如：螺絲、2吋...)" oninput="handleSearch()">
-</div>
-
 <div class="main-layout">
+    <div class="search-container">
+        <strong>🔍 零件搜尋：</strong>
+        <input type="text" id="global-search" placeholder="輸入名稱、用途或編號 (如: F6-1)..." oninput="handleSearch()">
+    </div>
+
     <div id="map-container">
-        <h3>倉庫平面圖 (點擊櫃位查看層級)</h3>
+        <h3 style="margin-top:0;">📍 點擊櫃位查看詳情</h3>
         <svg id="warehouse-map" viewBox="0 0 450 650" width="100%">
             <rect x="10" y="10" width="430" height="630" fill="none" stroke="#333" stroke-width="2" />
             <line x1="440" y1="110" x2="440" y2="180" class="door-frame" />
@@ -77,18 +96,21 @@
     </div>
 
     <div id="search-results-panel">
-        <h3>搜尋結果</h3>
-        <div id="search-list">輸入關鍵字開始搜尋...</div>
+        <h3 style="margin-top:0;">📋 搜尋結果 / 零件清單</h3>
+        <div id="search-list">請在上方搜尋框輸入關鍵字...</div>
     </div>
 </div>
 
 <div id="shelfModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 id="modal-title">櫃位詳情</h2>
-        <div id="modal-level-buttons" class="level-btn-group"></div>
-        <hr>
-        <div id="modal-item-display"></div>
+        <div class="modal-header">
+            <h2 id="modal-title" style="margin:0;">櫃位詳情</h2>
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="modal-level-buttons" class="level-btn-group"></div>
+            <div id="modal-item-display"></div>
+        </div>
     </div>
 </div>
 
@@ -96,7 +118,6 @@
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSto46FBwnjrl-C05u7L8klqGX0NaF33RrBVoXQutZv0EeC8uKvlcqh2UrhVdVJpQMnKtkTQnS6x591/pub?gid=0&single=true&output=csv"; 
     let inventoryData = [];
 
-    // 初始化讀取資料
     window.onload = function() {
         Papa.parse(sheetUrl, {
             download: true,
@@ -104,20 +125,16 @@
             skipEmptyLines: true,
             complete: function(results) {
                 inventoryData = results.data;
-                console.log("資料讀取成功:", inventoryData);
+                console.log("資料加載成功");
             }
         });
     };
 
     const modal = document.getElementById("shelfModal");
-    const shelves = document.querySelectorAll('.shelf');
 
-    // 點擊櫃位開啟彈窗
-    shelves.forEach(shelf => {
+    document.querySelectorAll('.shelf').forEach(shelf => {
         shelf.addEventListener('click', function() {
-            const shelfId = this.id;
-            if(!shelfId) return;
-            openModal(shelfId);
+            if(this.id) openModal(this.id);
         });
     });
 
@@ -127,16 +144,15 @@
         const displayArea = document.getElementById("modal-item-display");
         
         btnContainer.innerHTML = "";
-        displayArea.innerHTML = "請點擊上方按鈕查看各層零件圖片。";
+        displayArea.innerHTML = `<div style="text-align:center; padding:40px; color:#999;">請選擇下方層級按鈕查看零件</div>`;
 
-        // 生成 Fx-1, Fx-2... 按鈕
+        // 自動生成按鈕 Fx-1 ~ Fx-4
         for(let i = 1; i <= 4; i++) {
             let levelId = `${shelfId}-${i}`;
             let btn = document.createElement('button');
             btn.className = "level-btn";
             btn.innerText = levelId;
             btn.onclick = function() {
-                // 切換按鈕樣式
                 document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 renderItems(levelId, "modal-item-display");
@@ -146,22 +162,15 @@
         modal.style.display = "block";
     }
 
-    function closeModal() {
-        modal.style.display = "none";
-    }
+    function closeModal() { modal.style.display = "none"; }
+    window.onclick = function(e) { if (e.target == modal) closeModal(); }
 
-    // 關閉彈窗點擊外部
-    window.onclick = function(event) {
-        if (event.target == modal) closeModal();
-    }
-
-    // 渲染零件內容
     function renderItems(levelId, targetId) {
         const matchedItems = inventoryData.filter(item => item["層級編號 (Level)"] === levelId);
         const container = document.getElementById(targetId);
         
         if(matchedItems.length === 0) {
-            container.innerHTML = `<div style="padding:20px;">目前 ${levelId} 層沒有存放零件資訊。</div>`;
+            container.innerHTML = `<div style="padding:40px; text-align:center; background:#f9f9f9; border-radius:10px;">目前 ${levelId} 尚無零件資料。</div>`;
             return;
         }
 
@@ -169,56 +178,45 @@
             <div class="item-card">
                 ${item["圖片連結 (ImageURL)"] ? 
                     `<img src="${item["圖片連結 (ImageURL)"]}" class="item-image" onclick="window.open(this.src)">` : 
-                    `<div style="width:150px;height:150px;background:#eee;display:flex;align-items:center;justify-content:center;color:#999;border-radius:6px;">無圖片</div>`}
+                    `<div style="width:180px;height:180px;background:#eee;display:flex;align-items:center;justify-content:center;color:#999;border-radius:8px;">無圖片</div>`}
                 <div class="item-info">
-                    <h3 style="margin-top:0; color:var(--primary-color);">${item["零件名稱 (Name)"]}</h3>
-                    <p><strong>存放位置：</strong> <span class="highlight">${item["層級編號 (Level)"]}</span></p>
-                    <p><strong>使用用途：</strong> ${item["使用用途 (Usage)"] || '未填寫'}</p>
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-color);">${item["零件名稱 (Name)"]}</h3>
+                    <p><strong>📍 位置：</strong> <span class="highlight-pos">${item["層級編號 (Level)"]}</span></p>
+                    <p><strong>🛠 用途：</strong> ${item["使用用途 (Usage)"] || '未備註'}</p>
                 </div>
             </div>
         `).join('');
     }
 
-    // 搜尋功能
     function handleSearch() {
-        const keyword = document.getElementById("global-search").value.toLowerCase();
-        const searchList = document.getElementById("search-list");
+        const kw = document.getElementById("global-search").value.toLowerCase();
+        const list = document.getElementById("search-list");
         
-        if(!keyword) {
-            searchList.innerHTML = "輸入關鍵字開始搜尋...";
-            return;
-        }
+        if(!kw) { list.innerHTML = "請在上方搜尋框輸入關鍵字..."; return; }
 
-        const filtered = inventoryData.filter(item => 
-            (item["零件名稱 (Name)"] && item["零件名稱 (Name)"].toLowerCase().includes(keyword)) ||
-            (item["使用用途 (Usage)"] && item["使用用途 (Usage)"].toLowerCase().includes(keyword)) ||
-            (item["層級編號 (Level)"] && item["層級編號 (Level)"].toLowerCase().includes(keyword))
+        const res = inventoryData.filter(item => 
+            (item["零件名稱 (Name)"] && item["零件名稱 (Name)"].toLowerCase().includes(kw)) ||
+            (item["使用用途 (Usage)"] && item["使用用途 (Usage)"].toLowerCase().includes(kw)) ||
+            (item["層級編號 (Level)"] && item["層級編號 (Level)"].toLowerCase().includes(kw))
         );
 
-        if(filtered.length === 0) {
-            searchList.innerHTML = "找不到符合條件的零件。";
-            return;
-        }
+        if(res.length === 0) { list.innerHTML = "❌ 找不到相關零件。"; return; }
 
-        searchList.innerHTML = filtered.map(item => `
-            <div class="search-item" onclick="quickView('${item["層級編號 (Level)"]}')">
-                <strong>${item["零件名稱 (Name)"]}</strong><br>
-                <small>位置：${item["層級編號 (Level)"]} | 用途：${item["使用用途 (Usage)"]}</small>
+        list.innerHTML = res.map(item => `
+            <div class="search-item-card" onclick="quickView('${item["層級編號 (Level)"]}')">
+                <strong style="font-size:16px;">${item["零件名稱 (Name)"]}</strong><br>
+                <small>位置：${item["層級編號 (Level)"]}</small>
             </div>
         `).join('');
     }
 
-    // 從搜尋結果快速開啟彈窗
     function quickView(levelId) {
         const shelfId = levelId.split('-')[0];
         openModal(shelfId);
-        // 自動點擊對應層級按鈕
         setTimeout(() => {
             const btns = document.querySelectorAll('.level-btn');
-            btns.forEach(btn => {
-                if(btn.innerText === levelId) btn.click();
-            });
-        }, 100);
+            btns.forEach(b => { if(b.innerText === levelId) b.click(); });
+        }, 150);
     }
 </script>
 
