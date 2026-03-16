@@ -10,9 +10,19 @@
         body { font-family: "Microsoft JhengHei", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
         
         .main-layout { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1000px; margin: 0 auto; }
+        
+        /* 搜尋區塊 - 固定在上方 */
+        .search-container { 
+            background: white; padding: 20px; border-radius: 8px; 
+            margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            display: flex; gap: 15px; align-items: center;
+            position: sticky; top: 10px; z-index: 100;
+        }
+        #global-search { flex: 1; padding: 12px; border: 2px solid var(--primary-color); border-radius: 6px; font-size: 18px; }
+
         #map-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
-        /* SVG 櫃位樣式 */
+        /* SVG 樣式 */
         .shelf { fill: var(--shelf-color); stroke: #adb5bd; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
         .shelf:hover { fill: var(--hover-color); transform: translateY(-2px); }
         .shelf-text { font-size: 14px; font-weight: bold; pointer-events: none; fill: #495057; }
@@ -28,25 +38,36 @@
         .modal-header { padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
 
-        /* 實景導覽 */
+        /* 實景導覽區 */
         .photo-guide-container { position: relative; width: 100%; max-width: 600px; margin: 0 auto 20px; border: 3px solid #333; border-radius: 8px; overflow: hidden; }
         .shelf-photo { width: 100%; display: block; }
         .guide-box { position: absolute; border: 4px solid red; background: rgba(255, 0, 0, 0.2); display: none; pointer-events: none; box-shadow: 0 0 15px rgba(255,0,0,0.5); }
 
-        /* 按鈕與卡片 */
+        /* 搜尋結果區塊 */
+        #search-results-panel { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid var(--primary-color); min-height: 100px; }
+        #search-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+        .search-item-card { border: 1px solid #eee; padding: 10px; border-radius: 6px; cursor: pointer; background: #fdfdfd; }
+        .search-item-card:hover { background: #f0f7ff; border-color: var(--primary-color); }
+
+        /* 按鈕與零件卡片 */
         .level-btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; background: white; padding: 10px; position: sticky; top: 0; z-index: 10; }
-        .level-btn { padding: 10px 20px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; background: #f8f9fa; }
+        .level-btn { padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; background: #f8f9fa; }
         .level-btn.active { background: var(--primary-color); color: white; }
         .item-card { border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; gap: 15px; background: #fff; }
-        .item-image { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; }
+        .item-image { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; }
         .close-btn { font-size: 30px; cursor: pointer; color: #999; }
     </style>
 </head>
 <body>
 
 <div class="main-layout">
+    <div class="search-container">
+        <strong>🔍 零件搜尋：</strong>
+        <input type="text" id="global-search" placeholder="輸入名稱、用途或編號 (如: F6-1)..." oninput="handleSearch()">
+    </div>
+
     <div id="map-container">
-        <h2 style="text-align:center;">倉庫儲位管理系統</h2>
+        <h2 style="text-align:center; margin-top:0;">倉庫儲位平面圖</h2>
         <svg id="warehouse-map" viewBox="0 0 450 650" width="100%">
             <rect x="10" y="10" width="430" height="630" fill="none" stroke="#333" stroke-width="2" />
             
@@ -58,18 +79,19 @@
             <rect id="F1" class="shelf" x="310" y="10" width="130" height="80" /><text x="360" y="55" class="shelf-text">F1</text>
             <rect id="F2" class="shelf" x="130" y="10" width="160" height="100" /><text x="200" y="65" class="shelf-text">F2</text>
             <rect id="F3" class="shelf" x="10" y="10" width="100" height="200" /><text x="50" y="115" class="shelf-text">F3</text>
-            
             <rect id="F4" class="shelf" x="130" y="160" width="100" height="40" /><text x="170" y="185" class="shelf-text">F4</text>
             <rect id="F5" class="shelf" x="130" y="200" width="100" height="40" /><text x="170" y="225" class="shelf-text">F5</text>
-            
             <rect id="F6" class="shelf" x="130" y="260" width="100" height="30" /><text x="170" y="280" class="shelf-text">F6</text>
             <rect id="F7" class="shelf" x="130" y="290" width="100" height="30" /><text x="170" y="310" class="shelf-text">F7</text>
-            
             <rect id="F8" class="shelf" x="130" y="350" width="100" height="40" /><text x="170" y="375" class="shelf-text">F8</text>
-            
             <rect id="F9" class="shelf" x="260" y="240" width="60" height="130" /><text x="280" y="310" class="shelf-text">F9</text>
             <rect id="F10" class="shelf" x="320" y="240" width="60" height="130" /><text x="340" y="310" class="shelf-text">F10</text>
         </svg>
+    </div>
+
+    <div id="search-results-panel">
+        <h3 style="margin:0;">📋 搜尋結果</h3>
+        <div id="search-list">請輸入關鍵字搜尋...</div>
     </div>
 </div>
 
@@ -84,7 +106,6 @@
                 <img src="" id="shelf-image" class="shelf-photo">
                 <div id="guide-box" class="guide-box"></div>
             </div>
-
             <div id="modal-level-buttons" class="level-btn-group"></div>
             <div id="modal-item-display"></div>
         </div>
@@ -95,10 +116,10 @@
     const sheetUrl = "你的Google試算表CSV網址";
     let inventoryData = [];
 
-    // F6 櫃位照片與各層級座標
+    // F6 實景配置
     const SHELF_CONFIG = {
         "F6": {
-            img: "https://你的圖片網址/f6_labeled.jpg", 
+            img: "你的F6圖片網址", 
             coords: {
                 "F6-1": { top: "15%", left: "5%", width: "90%", height: "20%" },
                 "F6-2": { top: "38%", left: "5%", width: "90%", height: "20%" },
@@ -112,6 +133,34 @@
         Papa.parse(sheetUrl, { download: true, header: true, complete: res => { inventoryData = res.data; } });
     };
 
+    // 搜尋邏輯
+    function handleSearch() {
+        const kw = document.getElementById("global-search").value.toLowerCase();
+        const list = document.getElementById("search-list");
+        if(!kw) { list.innerHTML = "請輸入關鍵字搜尋..."; return; }
+
+        const res = inventoryData.filter(item => 
+            (item["零件名稱 (Name)"] && item["零件名稱 (Name)"].toLowerCase().includes(kw)) ||
+            (item["層級編號 (Level)"] && item["層級編號 (Level)"].toLowerCase().includes(kw))
+        );
+
+        list.innerHTML = res.length ? res.map(item => `
+            <div class="search-item-card" onclick="quickView('${item["層級編號 (Level)"]}')">
+                <strong>${item["零件名稱 (Name)"]}</strong><br>
+                <small>位置：${item["層級編號 (Level)"]}</small>
+            </div>
+        `).join('') : "找不到相關零件";
+    }
+
+    function quickView(levelId) {
+        const shelfId = levelId.split('-')[0];
+        openModal(shelfId);
+        setTimeout(() => {
+            const btns = document.querySelectorAll('.level-btn');
+            btns.forEach(b => { if(b.innerText === levelId) b.click(); });
+        }, 200);
+    }
+
     document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', () => openModal(s.id)));
 
     function openModal(shelfId) {
@@ -120,7 +169,6 @@
         const guideBox = document.getElementById("guide-box");
         const btnContainer = document.getElementById("modal-level-buttons");
         
-        // 檢查是否有實景圖設定
         if (SHELF_CONFIG[shelfId]) {
             photoArea.style.display = "block";
             document.getElementById("shelf-image").src = SHELF_CONFIG[shelfId].img;
@@ -131,7 +179,6 @@
         guideBox.style.display = "none";
         btnContainer.innerHTML = "";
         
-        // 預設生成 4 層 (可根據需求調整)
         for(let i = 1; i <= 4; i++) {
             let levelId = `${shelfId}-${i}`;
             let btn = document.createElement('button');
@@ -140,8 +187,6 @@
             btn.onclick = function() {
                 document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                
-                // 顯示紅框引導
                 if (SHELF_CONFIG[shelfId] && SHELF_CONFIG[shelfId].coords[levelId]) {
                     const c = SHELF_CONFIG[shelfId].coords[levelId];
                     Object.assign(guideBox.style, { top: c.top, left: c.left, width: c.width, height: c.height, display: "block" });
@@ -158,17 +203,16 @@
         const container = document.getElementById("modal-item-display");
         container.innerHTML = matched.length ? matched.map(item => `
             <div class="item-card">
-                <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/120?text=No+Photo'">
+                <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/100?text=無圖片'">
                 <div>
-                    <h3 style="margin:0 0 10px 0; color:#007bff;">${item["零件名稱 (Name)"]}</h3>
-                    <p><strong>🛠 用途：</strong> ${item["使用用途 (Usage)"] || '無'}</p>
+                    <h3 style="margin:0;">${item["零件名稱 (Name)"]}</h3>
+                    <p>用途：${item["使用用途 (Usage)"] || '無'}</p>
                 </div>
             </div>
-        `).join('') : `<div style="text-align:center; padding:20px; color:#999;">此層級暫無資料</div>`;
+        `).join('') : "暫無資料";
     }
 
     function closeModal() { document.getElementById("shelfModal").style.display = "none"; }
-    window.onclick = e => { if(e.target.id === "shelfModal") closeModal(); }
 </script>
 </body>
 </html>
