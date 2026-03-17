@@ -310,26 +310,52 @@ function openModal(shelfId) {
         document.getElementById("shelfModal").style.display = "block";
     }
 
-    function renderItems(locationKey) {
-        // 修改過濾邏輯：支援精確位置(F6-1)或整個櫃位(F3)的搜尋
-        const matched = inventoryData.filter(item => {
-            const level = item["層級編號 (Level)"] || "";
-            return level === locationKey || level.startsWith(locationKey + "-");
-        });
-
-        const container = document.getElementById("modal-item-display");
-        container.innerHTML = matched.length ? matched.map(item => `
-            <div class="item-card">
-                <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/100?text=無圖片'">
-                <div>
-                    <h3 style="margin:0;">${item["零件名稱 (Name)"]}</h3>
-                    <p>位置：${item["層級編號 (Level)"]}</p>
-                    <p>用途：${item["使用用途 (Usage)"] || '無'}</p>
+        function renderItems(locationKey) {
+            // 修改過濾邏輯：支援精確位置(F6-1)或整個櫃位(F3)的搜尋
+            const matched = inventoryData.filter(item => {
+                const level = item["層級編號 (Level)"] || "";
+                return level === locationKey || level.startsWith(locationKey + "-");
+            });
+        
+            const container = document.getElementById("modal-item-display");
+            container.innerHTML = matched.length ? matched.map(item => `
+                <div class="item-card">
+                    <img src="${item["圖片連結 (ImageURL)"] || ''}" 
+                         class="item-image" 
+                         onerror="this.src='https://via.placeholder.com/100?text=無圖片'"
+                         /* --- 新增這行：點擊圖片觸發放大功能 --- */
+                         onclick="zoomItemPhoto('${item["圖片連結 (ImageURL)"]}')">
+                    <div>
+                        <h3 style="margin:0;">${item["零件名稱 (Name)"]}</h3>
+                        <p>位置：${item["層級編號 (Level)"]}</p>
+                        <p>用途：${item["使用用途 (Usage)"] || '無'}</p>
+                    </div>
                 </div>
-            </div>
-        `).join('') : "暫無資料";
-    }
+            `).join('') : "暫無資料";
+        }
+        // 這個函式負責把零件圖「傳送到」上面的大圖區塊
+        function zoomItemPhoto(url) {
+            if (!url) return;
 
+            // 1. 找到大圖顯示區的圖片標籤
+            const shelfImg = document.getElementById("shelf-image");
+            // 2. 找到顯示大圖的容器
+            const photoArea = document.getElementById("shelf-photo-area");
+            // 3. 找到原本畫在櫃位上的紅框 (如果有顯示的話)
+            const guideBox = document.getElementById("guide-box");
+
+            // 將大圖的內容換成零件圖片
+            shelfImg.src = url;
+        
+            // 確保區塊有打開
+            photoArea.style.display = "block";
+
+            // 隱藏導引紅框，避免紅框擋在零件圖上面
+            if (guideBox) {
+                guideBox.style.display = "none";
+            }
+        }
+    
     function closeModal() { document.getElementById("shelfModal").style.display = "none"; }
 </script>
 </body>
