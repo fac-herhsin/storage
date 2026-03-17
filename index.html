@@ -53,8 +53,33 @@
         .level-btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 20px; background: white; padding: 10px; position: sticky; top: 0; z-index: 10; }
         .level-btn { padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; background: #f8f9fa; }
         .level-btn.active { background: var(--primary-color); color: white; }
-        .item-card { border: 1px solid #eee; border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; gap: 15px; background: #fff; }
-        .item-image { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; }
+        .item-card { 
+            border: 1px solid #eee; 
+            border-radius: 10px; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            display: flex; 
+            gap: 15px; 
+            background: #fff; 
+            align-items: flex-start; /* 確保文字多時，圖片固定在頂部 */
+        }
+
+        /* 修改後的 item-image：增加固定寬度防擠壓 */
+        .item-image { 
+            width: 100px; 
+            height: 100px; 
+            object-fit: cover; 
+            border-radius: 6px; 
+            flex-shrink: 0; /* 強制圖片維持 100px，不被右側文字擠壓 */
+        }
+
+        /* 新增：針對文字容器的處理 */
+        .item-card div {
+            flex: 1; /* 讓文字自動佔滿剩下的所有空間 */
+            min-width: 0; /* 關鍵！防止長文字撐破版面 */
+            word-wrap: break-word; /* 讓長句子自動換行 */
+        }
+
         .close-btn { font-size: 30px; cursor: pointer; color: #999; }
     </style>
 </head>
