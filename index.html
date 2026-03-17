@@ -289,19 +289,36 @@ function openModal(shelfId) {
         // 【核心修改】：判斷是否有分層座標 (如 F3 就沒有)
         if (config && config.coords && Object.keys(config.coords).length > 0) {
             // 有座標：產生分層按鈕
-            Object.keys(config.coords).forEach(levelId => {
-                let btn = document.createElement('button');
-                btn.className = "level-btn";
-                btn.innerText = levelId;
-                btn.onclick = function() {
-                    document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    const c = config.coords[levelId];
-                    Object.assign(guideBox.style, { top: c.top, left: c.left, width: c.width, height: c.height, display: "block" });
-                    renderItems(levelId);
-                };
-                btnContainer.appendChild(btn);
-            });
+        Object.keys(config.coords).forEach(levelId => {
+            let btn = document.createElement('button');
+            btn.className = "level-btn";
+            btn.innerText = levelId;
+            btn.onclick = function() {
+                // 1. 切換按鈕樣式
+                document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+        
+                // --- 新增：點擊層級按鈕時，強制換回櫃位實景圖 ---
+                const shelfImg = document.getElementById("shelf-image");
+                // 取得櫃位編號 (如 F6) 並換回對應的實景圖
+                const currentShelfId = levelId.split('-')[0];
+                shelfImg.src = SHELF_CONFIG[currentShelfId].img;
+        
+                // 2. 顯示紅框並定位
+                const c = config.coords[levelId];
+                Object.assign(guideBox.style, { 
+                    top: c.top, 
+                    left: c.left, 
+                    width: c.width, 
+                    height: c.height, 
+                    display: "block" // 確保紅框重新出現
+                });
+
+        // 3. 渲染零件清單
+        renderItems(levelId);
+    };
+    btnContainer.appendChild(btn);
+});
         } else {
             // 無座標：直接抓取該櫃位(如 F3)的所有零件，不產生按鈕
             renderItems(shelfId); 
