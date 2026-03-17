@@ -68,9 +68,11 @@
         .item-image { 
             width: 100px; 
             height: 100px; 
-            object-fit: cover; 
+            object-fit: contain; 
+            background-color: #f9f9f9;
             border-radius: 6px; 
             flex-shrink: 0; /* 強制圖片維持 100px，不被右側文字擠壓 */
+            cursor: pointer; /* 增加手指指標，提示可以點擊 */
         }
 
         /* 新增：針對文字容器的處理 */
