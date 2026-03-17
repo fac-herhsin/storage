@@ -168,12 +168,13 @@
 
     document.querySelectorAll('.shelf').forEach(s => s.addEventListener('click', () => openModal(s.id)));
 
-    function openModal(shelfId) {
+function openModal(shelfId) {
         document.getElementById("modal-title").innerText = "櫃位詳情：" + shelfId;
         const photoArea = document.getElementById("shelf-photo-area");
         const guideBox = document.getElementById("guide-box");
         const btnContainer = document.getElementById("modal-level-buttons");
         
+        // 處理照片顯示
         if (SHELF_CONFIG[shelfId]) {
             photoArea.style.display = "block";
             document.getElementById("shelf-image").src = SHELF_CONFIG[shelfId].img;
@@ -182,35 +183,48 @@
         }
 
         guideBox.style.display = "none";
-        btnContainer.innerHTML = "";
+        btnContainer.innerHTML = ""; // 先清空按鈕區
         
-        for(let i = 1; i <= 4; i++) {
-            let levelId = `${shelfId}-${i}`;
-            let btn = document.createElement('button');
-            btn.className = "level-btn";
-            btn.innerText = levelId;
-            btn.onclick = function() {
-                document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                if (SHELF_CONFIG[shelfId] && SHELF_CONFIG[shelfId].coords[levelId]) {
-                    const c = SHELF_CONFIG[shelfId].coords[levelId];
+        const config = SHELF_CONFIG[shelfId];
+        
+        // 【核心修改】：判斷是否有分層座標 (如 F3 就沒有)
+        if (config && config.coords && Object.keys(config.coords).length > 0) {
+            // 有座標：產生分層按鈕
+            Object.keys(config.coords).forEach(levelId => {
+                let btn = document.createElement('button');
+                btn.className = "level-btn";
+                btn.innerText = levelId;
+                btn.onclick = function() {
+                    document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const c = config.coords[levelId];
                     Object.assign(guideBox.style, { top: c.top, left: c.left, width: c.width, height: c.height, display: "block" });
-                }
-                renderItems(levelId);
-            };
-            btnContainer.appendChild(btn);
+                    renderItems(levelId);
+                };
+                btnContainer.appendChild(btn);
+            });
+        } else {
+            // 無座標：直接抓取該櫃位(如 F3)的所有零件，不產生按鈕
+            renderItems(shelfId); 
         }
+
         document.getElementById("shelfModal").style.display = "block";
     }
 
-    function renderItems(levelId) {
-        const matched = inventoryData.filter(item => item["層級編號 (Level)"] === levelId);
+    function renderItems(locationKey) {
+        // 修改過濾邏輯：支援精確位置(F6-1)或整個櫃位(F3)的搜尋
+        const matched = inventoryData.filter(item => {
+            const level = item["層級編號 (Level)"] || "";
+            return level === locationKey || level.startsWith(locationKey + "-");
+        });
+
         const container = document.getElementById("modal-item-display");
         container.innerHTML = matched.length ? matched.map(item => `
             <div class="item-card">
                 <img src="${item["圖片連結 (ImageURL)"] || ''}" class="item-image" onerror="this.src='https://via.placeholder.com/100?text=無圖片'">
                 <div>
                     <h3 style="margin:0;">${item["零件名稱 (Name)"]}</h3>
+                    <p>位置：${item["層級編號 (Level)"]}</p>
                     <p>用途：${item["使用用途 (Usage)"] || '無'}</p>
                 </div>
             </div>
