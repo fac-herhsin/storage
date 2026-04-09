@@ -260,6 +260,14 @@
         Papa.parse(sheetUrl, { download: true, header: true, complete: res => { inventoryData = res.data; } });
     };
 
+    window.onclick = function(event) {
+            const modal = document.getElementById("shelfModal");
+            // 如果點擊的對象是 modal 背景本身，而不是裡面的內容
+            if (event.target == modal) {
+                closeModal();
+            }
+     };
+    
     // 搜尋邏輯
     function handleSearch() {
         const kw = document.getElementById("global-search").value.toLowerCase();
