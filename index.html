@@ -21,6 +21,30 @@
         #global-search { flex: 1; padding: 12px; border: 2px solid var(--primary-color); border-radius: 6px; font-size: 18px; }
 
         #map-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        .floor-toggle-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .floor-btn {
+            width: 38px;
+            height: 38px;
+            border: 2px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        .floor-btn:hover { background: #e6f0ff; }
+        .floor-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
         
         /* SVG 樣式 */
         .shelf { fill: var(--shelf-color); stroke: #adb5bd; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
@@ -93,9 +117,17 @@
         <input type="text" id="global-search" placeholder="輸入名稱、用途或編號 (如: F6-1)..." oninput="handleSearch()">
     </div>
 
-    <div id="map-container">
+<div id="map-container">
         <h2 style="text-align:center; margin-top:0;">倉庫儲位平面圖</h2>
-        <svg id="warehouse-map" viewBox="0 0 450 1000" width="100%">
+        
+        <!-- 【新增 1】樓層切換按鈕 -->
+        <div class="floor-toggle-container">
+            <button class="floor-btn active" id="btn-1f" onclick="switchFloor(1)">1</button>
+            <button class="floor-btn" id="btn-2f" onclick="switchFloor(2)">2</button>
+        </div>
+
+        <!-- 【修改】把原本的 id="warehouse-map" 改成 id="warehouse-map-1f" -->
+        <svg id="warehouse-map-1f" viewBox="0 0 450 1000" width="100%">
             <rect x="10" y="10" width="430" height="970" fill="none" stroke="#333" stroke-width="2" />
             
             <line x1="440" y1="110" x2="440" y2="180" class="door-frame" />
@@ -117,7 +149,16 @@
             <rect id="F12" class="shelf" x="130" y="370" width="100" height="100" /><text x="180" y="425" class="shelf-text" text-anchor="middle">F12</text>
             <rect id="F13" class="shelf" x="340" y="628" width="100" height="350" /><text x="390" y="803" class="shelf-text" text-anchor="middle">F13</text>
             <rect id="F14" class="shelf" x="115" y="520" width="200" height="300" /><text x="215" y="670" class="shelf-text" text-anchor="middle">F14</text>
-        </svg>  
+        </svg>
+
+        <!-- 【新增 2】貼上 2 樓的 SVG 地圖 (預設 display: none 隱藏) -->
+        <svg id="warehouse-map-2f" viewBox="0 0 450 1000" width="100%" style="display: none;">
+            <rect x="10" y="10" width="430" height="970" fill="none" stroke="#333" stroke-width="2" />
+            
+            <!-- 2 樓的小平台 (預設放在中間區域，可再依照實體位置修改) -->
+            <rect id="Platform2F" class="shelf" x="115" y="520" width="200" height="300" />
+            <text x="215" y="670" class="shelf-text" text-anchor="middle">2樓小平台</text>
+        </svg>
     </div>
 
     <div id="search-results-panel">
@@ -256,9 +297,32 @@
         "F14": {
             img: "F14.jpg",
             coords: {}      // 設為空物件，點擊時會直接列出所有零件，不會有分層按鈕
+        },
+        "Platform2F": {
+            img: "Platform2F.jpg",
+            coords: {}
         }
        };
 
+    function switchFloor(floor) {
+        const map1F = document.getElementById("warehouse-map-1f");
+        const map2F = document.getElementById("warehouse-map-2f");
+        const btn1F = document.getElementById("btn-1f");
+        const btn2F = document.getElementById("btn-2f");
+
+        if (floor === 1) {
+            map1F.style.display = "block";
+            map2F.style.display = "none";
+            btn1F.classList.add("active");
+            btn2F.classList.remove("active");
+        } else {
+            map1F.style.display = "none";
+            map2F.style.display = "block";
+            btn1F.classList.remove("active");
+            btn2F.classList.add("active");
+        }
+    }
+    
     window.onload = function() {
         Papa.parse(sheetUrl, { download: true, header: true, complete: res => { inventoryData = res.data; } });
     };
